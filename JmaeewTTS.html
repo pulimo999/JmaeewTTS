@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>気象庁EEW読み上げ</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+       #alert-box { padding: 20px; color: white; margin: 10px; border-radius: 5px; }
+        .warning { background-color: #ffc107; }
+        .alert { background-color: #dc3545; }
+        #log-container { border: 1px solid #ccc; padding: 10px; margin: 10px; height: 300px; overflow-y: auto; }
+        .message { margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; }
+    </style>
+</head>
+<body>
+    <!-- 结构 -->
+    <div id="alert-box"></div>
+    <div id="log-container"></div>
+    
+    <div id="voice-settings">
+        <select id="voice-type">
+            <option value="api">BouyomiChan(端口号50080)</option>
+            <option value="ms">其他朗读</option>
+        </select>
+        <select id="voice-select" style="display: none;"></select>
+    </div>
+    
+    <button id="manual-query">手动查询websocket消息</button>
+
+<script>
+//变量声明
+const WS_URL = 'wss://ws-api.wolfx.jp/jma_eew';
+let ws = null;
+let lastHeartbeat = 0;
+let lastData = {};
+let voices = [];
+let synth = window.speechSynthesis;
+
+let alertTimer = null;
+let lastAnnouncedTime = null;
+
+//语言持久化存储
+const loadSettings = () => {
+    const settings = JSON.parse(localStorage.getItem('voiceSettings') || '{}');
+    $('#voice-type').val(settings.type || 'api');
+    if(settings.type === 'ms') {
+        $('#voice-select').show().val(settings.voice || '');
+    }
+};
+
+const saveSettings = () => {
+    const settings = {
+        type: $('#voice-type').val(),
+        voice: $('#voice-select').val()
+    };
+    localStorage.setItem('voiceSettings', JSON.stringify(settings));
+};
+
+//WebSocket管理
+function connect() {
+    ws = new WebSocket(WS_URL);
+    
+    ws.onmessage = (e) => {
+        try {
+            const data = JSON.parse(e.data);
+            if(data.type === 'heartbeat') {
+                lastHeartbeat = data.timestamp;
+                // 不显示心跳包日志记录
+            } else if(data.type === 'jma_eew') {
+                processEEW(data);
+                // 不显示原始数据日志记录
+            }
+        } catch(err) {
+            console.error('解析错误:', err);
+        }
+    };
+}
+
+//心跳检测
+setInterval(() => {
+    if(Date.now() - lastHeartbeat > 65000) {
+        console.log('连接超时，重新连接...');
+        connect();
+    }
+}, 10000);
+
+//语音处理
+function speak(text) {
+    const type = $('#voice-type').val();
+    if(type === 'api') {
+        $.get(`http://localhost:50080/talk?text=${encodeURIComponent(text)}`);
+    } else {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = voices.find(v => v.voiceURI === $('#voice-select').val());
+        if(voice) utterance.voice = voice;
+        synth.speak(utterance);
+    }
+}
+
+//初始化
+$(document).ready(() => {
+    loadSettings();
+    
+    // 语音类型切换
+    $('#voice-type').change(function() {
+        if(this.value === 'ms') {
+            $('#voice-select').show();
+            if(voices.length === 0) {
+                voices = synth.getVoices().filter(v => v.lang.includes('ja'));
+                voices.forEach(v => {
+                    $('#voice-select').append(`<option value="${v.voiceURI}">${v.name}</option>`);
+                });
+            }
+        } else {
+            $('#voice-select').hide();
+        }
+        saveSettings();
+    });
+
+    // 手动查询功能
+    $('#manual-query').click(() => {
+        const msg = prompt('输入要发送的消息:');
+        if(msg && ws) ws.send(msg);
+    });
+
+    connect();
+});
+
+function processEEW(data) {
+    const currentAnnouncedTime = data.AnnouncedTime;
+    const alertBox = $('#alert-box');
+    
+    // 当发布时间变化或提示框未显示时更新
+    if (currentAnnouncedTime !== lastAnnouncedTime || alertBox.css('display') === 'none') {
+        // 清除旧计时器
+        if(alertTimer) clearTimeout(alertTimer);
+        
+        //予報/警報提示框显示
+        if(data.Title.includes('予報')) {
+            alertBox.removeClass('alert').addClass('warning').text('緊急地震速報(予報)、震源地付近の揺れにご注意ください').show();
+        } else if(data.Title.includes('警報')) {
+            alertBox.removeClass('warning').addClass('alert').text('緊急地震速報です、強い揺れに警戒してください').show();
+        }
+        
+        // ===== 1分钟隐藏定时 =====
+        alertTimer = setTimeout(() => {
+            alertBox.hide();
+        }, 60000); 
+        
+        lastAnnouncedTime = currentAnnouncedTime;
+    }
+
+    //播报模板
+    let template = '';
+    if(data.Hypocenter !== lastData.Hypocenter) {
+        template = `第${data.Serial}報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
+    } else if(data.Magunitude !== lastData.Magunitude) {
+        template = `第${data.Serial}報、マグニチュード${data.Magunitude}。`;
+    } else if(data.MaxIntensity !== lastData.MaxIntensity) {
+        template = `第${data.Serial}報、最大震度${data.MaxIntensity}。`;
+    } else if(data.Depth !== lastData.Depth) {
+        template = `第${data.Serial}報、深さ${data.Depth}キロメートル。`;
+    }
+
+    if(template) {
+        speak(template);
+        logMessage(template); // 仅显示模板日志
+    }
+    lastData = data;
+}
+
+//日志功能
+function logMessage(msg) {
+    $('#log-container').append(`<div class="message">${new Date().toLocaleString()}: ${msg}</div>`);
+}
+</script>
+</body>
+</html>
