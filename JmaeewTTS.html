@@ -88,8 +88,8 @@ setInterval(() => {
 function speak(text) {
     const type = $('#voice-type').val();
     if(type === 'api') {
-        $.get(`http://localhost:50080/talk?text=${encodeURIComponent(text)}`);
-    } else {
+        $.get(`http://localhost:50080/talk?text=${encodeURIComponent(text)}`);  //这里可以自行更改连接地址，必须为http连接，${encodeURIComponent(text)}这一段不要乱改，否则会有问题
+      } else {
         const utterance = new SpeechSynthesisUtterance(text);
         const voice = voices.find(v => v.voiceURI === $('#voice-select').val());
         if(voice) utterance.voice = voice;
@@ -142,29 +142,33 @@ function processEEW(data) {
             alertBox.removeClass('warning').addClass('alert').text('緊急地震速報です、強い揺れに警戒してください').show();
         }
         
-        // ===== 1分钟隐藏定时 =====
+        // ===== 提示框隐藏定时 =====
         alertTimer = setTimeout(() => {
             alertBox.hide();
-        }, 60000); 
+        }, 45000); //这里为45秒，可以自行更改
         
         lastAnnouncedTime = currentAnnouncedTime;
     }
 
-    //播报模板
+    //处理原EEW信息
     let template = '';
-    if(data.Hypocenter !== lastData.Hypocenter) {
+    if(data.EventID !== lastData.EventID) {
         template = `第${data.Serial}報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Magunitude !== lastData.Magunitude) {
+    } else if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true) {
+        template = `第${data.Serial}報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
+    } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
         template = `第${data.Serial}報、マグニチュード${data.Magunitude}。`;
-    } else if(data.MaxIntensity !== lastData.MaxIntensity) {
+    } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
         template = `第${data.Serial}報、最大震度${data.MaxIntensity}。`;
-    } else if(data.Depth !== lastData.Depth) {
+    } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
         template = `第${data.Serial}報、深さ${data.Depth}キロメートル。`;
+   }
+   if(data.isFinal = true) {
+        template = `最終報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
     }
-
-    if(template) {
+     if(template) {
         speak(template);
-        logMessage(template); // 仅显示模板日志
+        logMessage(template); // 仅显示EEW日志
     }
     lastData = data;
 }
