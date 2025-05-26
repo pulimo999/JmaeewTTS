@@ -164,7 +164,7 @@ function processEEW(data) {
     } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
         template = `第${data.Serial}報、深さ${data.Depth}キロメートル。`;
    }
-     else if(data.isFinal = true) {
+     else if(data.isFinal = true && data.Serial !== 1) {
         template = `最終報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
     }
      if(template) {
