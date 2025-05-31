@@ -1,4 +1,4 @@
-# 一个DeepSeek写的html，个人评价为shit
+# 一个DeepSeek写的html（虽然后面开始都是我自己改的），个人评价为shit
 api来源：[Wolfx](https://wolfx.jp/apidoc)
 ## 如何使用：
 ## -首先，确保你已经准备好了Bouyomichan，并且打开了http连接功能，端口号为50080
