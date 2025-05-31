@@ -150,7 +150,7 @@ function processEEW(data) {
         lastAnnouncedTime = currentAnnouncedTime;
     }
 
-    //处理原EEW信息
+    //处理原EEW信息，操你妈的，改成只有最终报有报数就不会出现中途一报触发最终报了，傻逼
     let template = '';
     if(data.EventID !== lastData.EventID && data.isFinal !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
