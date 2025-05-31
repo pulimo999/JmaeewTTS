@@ -150,21 +150,24 @@ function processEEW(data) {
         lastAnnouncedTime = currentAnnouncedTime;
     }
 
-    //处理原EEW信息，操你妈的，改成只有最终报有报数就不会出现中途一报触发最终报了，傻逼
+    //处理原EEW信息
     let template = '';
-    if(data.EventID !== lastData.EventID && data.isFinal !== true) {
+    if(data.isCancel == true) {
+        template = `先ほどの緊急地震速報はキャンセルされました。`;
+    } if(data.EventID !== lastData.EventID && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true) {
+    } if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
+    } if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
+        template = `マグニチュード${data.Magunitude}、最大震度、${data.MaxIntensity}、深さ${data.Depth}キロメートル。`;
+    } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
         template = `マグニチュード${data.Magunitude}。`;
-    } if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
+    } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
         template = `最大震度、${data.MaxIntensity}。`;
-    } if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
-        template = `深さ${data.Depth}キロメートル。`;
-    } else if(data.isFinal !== false && data.Serial !== 1) {
+    } else if(data.isFinal == true && data.Serial !== 1 && data.isCancel !== true) {
         template = `最終報、${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-  }
+   }
+
      if(template) {
         speak(template);
         logMessage(template); // 仅显示EEW日志
