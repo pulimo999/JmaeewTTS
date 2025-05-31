@@ -153,20 +153,18 @@ function processEEW(data) {
     //处理原EEW信息
     let template = '';
     if(data.EventID !== lastData.EventID && data.isFinal !== true) {
-        template = `第${data.Serial}報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    }
-    if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true) {
-        template = `第${data.Serial}報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
-        template = `第${data.Serial}報、マグニチュード${data.Magunitude}。`;
-    } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
-        template = `第${data.Serial}報、最大震度${data.MaxIntensity}。`;
-    } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
-        template = `第${data.Serial}報、深さ${data.Depth}キロメートル。`;
-   }
-     else if(data.isFinal = true && data.Serial !== 1) {
-        template = `最終報、${data.Hypocenter}で地震、最大震度${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    }
+        template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
+    } if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true) {
+        template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
+    } if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
+        template = `マグニチュード${data.Magunitude}。`;
+    } if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
+        template = `最大震度、${data.MaxIntensity}。`;
+    } if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
+        template = `深さ${data.Depth}キロメートル。`;
+    } else if(data.isFinal !== false && data.Serial !== 1) {
+        template = `最終報、${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
+  }
      if(template) {
         speak(template);
         logMessage(template); // 仅显示EEW日志
