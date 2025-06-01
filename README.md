@@ -6,4 +6,4 @@ api来源：[Wolfx](https://wolfx.jp/apidoc)
 ### 到这里，算是准备好了，直接打开下载好的html文件，理论上来说应该是能正常运行的，吧，不行的话我也没办法了，毕竟是ai写的，除非后续有致命bug或者改功能再修复（
 ### 可以的话给我点颗星好吗（
 ### 效果图：
-![image](https://raw.githubusercontent.com/pulimo999/photos/refs/heads/main/jmaeewtts.png)
+![image](https://raw.githubusercontent.com/pulimo999/other/refs/heads/main/jmaeewtts.png)
