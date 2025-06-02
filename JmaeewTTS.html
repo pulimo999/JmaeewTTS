@@ -5,11 +5,102 @@
     <title>気象庁EEW読み上げ</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <style>
-       #alert-box { padding: 20px; color: white; margin: 10px; border-radius: 5px; }
+        #alert-box { padding: 20px; color: white; margin: 10px; border-radius: 5px; }
         .warning { background-color: #ffc107; }
         .alert { background-color: #dc3545; }
+        .cancel { background-color: #27403c; }
         #log-container { border: 1px solid #ccc; padding: 10px; margin: 10px; height: 300px; overflow-y: auto; }
         .message { margin: 5px 0; padding: 5px; border-bottom: 1px solid #eee; }
+        
+        #version-info {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        #update-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            z-index: 1000;
+            width: 350px;
+            max-width: 90%;
+            text-align: center;
+        }
+        
+        #update-alert h3 {
+            color: #dc3545;
+            margin-top: 0;
+        }
+        
+        .version-compare {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        
+        .version-box {
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: bold;
+            color: white;
+        }
+        
+        .current-version {
+            background: #ffc107;
+        }
+        
+        .latest-version {
+            background: #28a745;
+        }
+        
+        .update-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .update-btn {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        #close-update {
+            background: #6c757d;
+            color: white;
+        }
+        
+        #go-to-download {
+            background: #007bff;
+            color: white;
+        }
+        
+        #update-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
@@ -26,8 +117,39 @@
     </div>
     
     <button id="manual-query">手动查询websocket消息</button>
+    
+    <!-- 版本信息显示 -->
+    <div id="version-info">制作:pulimo999 版本: <span id="current-version"></div>
+    
+    <!-- 更新提示框 -->
+    <div id="update-overlay"></div>
+    <div id="update-alert">
+        <h3>版本更新提示</h3>
+        <p>您当前使用的不是最新版本哦</p>
+        
+        <div class="version-compare">
+            <div class="version-box current-version">
+                当前版本<br>
+                <span id="current-version-display">
+            </div>
+            <div class="version-box latest-version">
+                最新版本<br>
+                <span id="latest-version-display">
+            </div>
+        </div>
+        
+        <p>建议更新到最新版本（因为我写的是一堆bug，最新版会修复的）</p>
+        
+        <div class="update-buttons">
+            <button class="update-btn" id="close-update">确定</button>
+            <button class="update-btn" id="go-to-download">跳转到下载页面</button>
+        </div>
+    </div>
 
 <script>
+// 当前版本号
+const CURRENT_VERSION = "2.1";
+
 //变量声明
 const WS_URL = 'wss://ws-api.wolfx.jp/jma_eew';
 let ws = null;
@@ -35,9 +157,14 @@ let lastHeartbeat = 0;
 let lastData = {};
 let voices = [];
 let synth = window.speechSynthesis;
+let reconnectAttempts = 0;
 
 let alertTimer = null;
 let lastAnnouncedTime = null;
+
+// 显示当前版本
+$("#current-version").text(CURRENT_VERSION);
+$("#current-version-display").text(CURRENT_VERSION);
 
 //语言持久化存储
 const loadSettings = () => {
@@ -74,6 +201,10 @@ function connect() {
             console.error('解析错误:', err);
         }
     };
+
+    ws.onclose = () => {
+        setTimeout(connect, Math.min(5000, ++reconnectAttempts * 2000));
+    };
 }
 
 //心跳检测
@@ -95,6 +226,32 @@ function speak(text) {
         if(voice) utterance.voice = voice;
         synth.speak(utterance);
     }
+}
+
+// 检查版本更新
+function checkVersionUpdate() {
+    const versionUrl = "https://raw.githubusercontent.com/pulimo999/other/main/update.json";
+    
+    // 时间戳，避免缓存问题
+    const timestamp = new Date().getTime();
+    
+    fetch(`${versionUrl}?t=${timestamp}`)
+        .then(response => {
+            if (!response.ok) throw new Error('版本信息获取失败');
+            return response.json();
+        })
+        .then(data => {
+            const latestVersion = data.jetversion;
+            $("#latest-version-display").text(latestVersion);
+            
+            if (latestVersion !== CURRENT_VERSION) {
+                // 显示更新提示
+                $('#update-alert, #update-overlay').show();
+            }
+        })
+        .catch(error => {
+            console.error('版本检查错误:', error);
+        });
 }
 
 //初始化
@@ -123,6 +280,18 @@ $(document).ready(() => {
         if(msg && ws) ws.send(msg);
     });
 
+    // 版本更新
+    checkVersionUpdate();
+    
+    // 更新提示框按钮事件
+    $('#close-update').click(() => {
+        $('#update-alert, #update-overlay').hide();
+    });
+    
+    $('#go-to-download').click(() => {
+        window.open('https://github.com/pulimo999/JmaeewTTS/releases', '_blank');
+    });
+
     connect();
 });
 
@@ -136,13 +305,15 @@ function processEEW(data) {
         if(alertTimer) clearTimeout(alertTimer);
         
         //予報/警報提示框显示
-        if(data.Title.includes('予報')) {
-            alertBox.removeClass('alert').addClass('warning').text('緊急地震速報(予報)、震源地付近の揺れにご注意ください').show();
+        if(data.isCancel == true){
+             alertBox.removeClass('cencel').addClass('warning && alert').text('緊急地震速報はキャンセルされました').show();
+        } else if(data.Title.includes('予報')) {
+            alertBox.removeClass('alert').addClass('warning && cencel').text('緊急地震速報(予報)、震源地付近の揺れにご注意ください').show();
         } else if(data.Title.includes('警報')) {
-            alertBox.removeClass('warning').addClass('alert').text('緊急地震速報です、強い揺れに警戒してください').show();
+            alertBox.removeClass('warning').addClass('alert && cencel').text('緊急地震速報です、強い揺れに警戒してください').show();
         }
         
-        // ===== 提示框隐藏定时 =====
+        //提示框隐藏定时
         alertTimer = setTimeout(() => {
             alertBox.hide();
         }, 45000); //这里为45秒，可以自行更改
@@ -154,17 +325,21 @@ function processEEW(data) {
     let template = '';
     if(data.isCancel == true) {
         template = `先ほどの緊急地震速報はキャンセルされました。`;
-    } if(data.EventID !== lastData.EventID && data.isFinal !== true && data.isCancel !== true) {
+    } else if(data.EventID !== lastData.EventID && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
+    } else if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
+    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
         template = `マグニチュード${data.Magunitude}、最大震度、${data.MaxIntensity}、深さ${data.Depth}キロメートル。`;
+    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true){
+       template = `マグニチュード${data.Magunitude}、最大震度、${data.MaxIntensity}。`;
     } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
         template = `マグニチュード${data.Magunitude}。`;
     } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
         template = `最大震度、${data.MaxIntensity}。`;
-    } else if(data.isFinal == true && data.Serial !== 1 && data.isCancel !== true) {
+    } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
+        template = `深さ${data.Depth}キロメートル。`;
+   } else if(data.isFinal == true && data.Serial !== 1 && data.isCancel !== true) {
         template = `最終報、${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
    }
 
