@@ -323,27 +323,27 @@ function processEEW(data) {
 
     //处理原EEW信息
     let template = '';
-    if(data.isCancel == true && data.type == jma_eew) {
+    if(data.isCancel == true) {
         template = `先ほどの緊急地震速報はキャンセルされました。`;
-    } else if(data.EventID !== lastData.EventID && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew) {
+    } else if(data.EventID !== lastData.EventID && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew) {
+    } else if(data.Hypocenter !== lastData.Hypocenter && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
         template = `${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew) {
+    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true) {
         template = `マグニチュード${data.Magunitude}、最大震度、${data.MaxIntensity}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew){
+    } else if(data.Magunitude !== lastData.Magunitude && data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true){
        template = `マグニチュード${data.Magunitude}、最大震度、${data.MaxIntensity}。`;
-    } else if(data.Magunitude !== lastData.Magunitude && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew){
+    } else if(data.Magunitude !== lastData.Magunitude && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true){
        template = `マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
-     } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true && data.type == jma_eew){
+     } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.isCancel !== true){
        template = `最大震度、${data.MaxIntensity}、深さ${data.Depth}キロメートル。`;
-    } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true && data.type == jma_eew) {
+    } else if(data.Magunitude !== lastData.Magunitude && data.Serial !== 1 && data.isFinal !== true) {
         template = `マグニチュード${data.Magunitude}。`;
-    } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true && data.type == jma_eew) {
+    } else if(data.MaxIntensity !== lastData.MaxIntensity && data.Serial !== 1 && data.isFinal !== true) {
         template = `最大震度、${data.MaxIntensity}。`;
-    } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true && data.type == jma_eew) {
+    } else if(data.Depth !== lastData.Depth && data.Serial !== 1 && data.isFinal !== true) {
         template = `深さ${data.Depth}キロメートル。`;
-   } else if(data.isFinal == true && data.Serial !== 1 && data.isCancel !== true && data.type == jma_eew) {
+   } else if(data.isFinal == true && data.Serial !== 1 && data.isCancel !== true) {
         template = `最終報、${data.Hypocenter}、最大震度、${data.MaxIntensity}、マグニチュード${data.Magunitude}、深さ${data.Depth}キロメートル。`;
    }
 
